@@ -10,7 +10,7 @@ interface MatchItem {
   matched: boolean;
 }
 
-const WORDS_PER_GROUP = 4;
+const WORDS_PER_GROUP = 5;
 
 export default function MatchGame() {
   const { lessonId } = useParams<{ lessonId: string }>()
@@ -201,11 +201,25 @@ export default function MatchGame() {
 
   return (
     <div className="min-h-screen bg-white py-4 sm:py-8 px-4">
-      <div className="max-w-6xl mx-auto">
+      <div className="w-full md:max-w-[750px] mx-auto">
         {/* Header */}
         <div className="flex justify-between items-center mb-6 sm:mb-8">
-          <div className="text-sm sm:text-base text-gray-700">
-            点击单词按钮和对应的中文按钮,即可实现连线
+          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
+            <button
+              onClick={handleShowAnswer}
+              className="px-6 sm:px-8 py-2 sm:py-3 bg-gray-200 hover:bg-gray-300 
+                       rounded-lg text-sm sm:text-base text-gray-700 transition-colors
+                       active:scale-95 transform min-w-[100px] touch-manipulation"
+            >
+              {showAnswer 
+                ? (currentGroup < totalGroups - 1 ? '下一组' : '进入复习')
+                : '下一题'
+              }
+            </button>
+            <div className="flex items-center gap-2 text-green-600">
+              <div className="w-3 h-3 bg-green-500 rounded"></div>
+              <span className="text-sm sm:text-base">正确答案</span>
+            </div>
           </div>
           <div className="text-sm sm:text-base text-gray-500">
             {currentGroup + 1}/{totalGroups}
@@ -247,9 +261,9 @@ export default function MatchGame() {
           </svg>
 
           {/* Content */}
-          <div className="flex flex-col md:flex-row justify-center items-start gap-6 sm:gap-8 md:gap-12 relative z-20">
+          <div className="flex flex-row justify-between items-start relative z-20 overflow-x-auto px-4 md:px-[150px]">
             {/* Left Column - Words */}
-            <div className="flex flex-col items-start space-y-3 sm:space-y-4">
+            <div className="flex flex-col items-start space-y-3 sm:space-y-4 flex-shrink-0">
               {leftItems.map((item, index) => (
                 <button
                   key={index}
@@ -257,7 +271,7 @@ export default function MatchGame() {
                   data-side="left"
                   onClick={() => handleLeftClick(index)}
                   disabled={item.matched}
-                  className={`text-left px-4 sm:px-5 py-2.5 sm:py-3 rounded-lg 
+                  className={`w-[140px] text-left px-3 sm:px-4 py-2 sm:py-2.5 rounded-lg 
                     transition-all duration-200 touch-manipulation
                     ${item.matched 
                       ? 'bg-green-100 text-gray-600 cursor-not-allowed' 
@@ -268,20 +282,20 @@ export default function MatchGame() {
                     ${item.matched ? 'opacity-60' : ''}
                     active:scale-[0.98] transform`}
                 >
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-start gap-2">
                     {item.matched && (
-                      <svg className="w-5 h-5 text-green-600 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                      <svg className="w-4 h-4 sm:w-5 sm:h-5 text-green-600 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
                         <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
                       </svg>
                     )}
-                    <span className="text-sm sm:text-base">{item.word.word}</span>
+                    <span className="text-xs sm:text-sm break-words">{item.word.word}</span>
                   </div>
                 </button>
               ))}
             </div>
 
             {/* Right Column - Meanings */}
-            <div className="flex flex-col items-start space-y-3 sm:space-y-4">
+            <div className="flex flex-col items-end space-y-3 sm:space-y-4 flex-shrink-0">
               {rightItems.map((item, index) => (
                 <button
                   key={index}
@@ -289,7 +303,7 @@ export default function MatchGame() {
                   data-side="right"
                   onClick={() => handleRightClick(index)}
                   disabled={item.matched}
-                  className={`text-left px-4 sm:px-5 py-2.5 sm:py-3 rounded-lg 
+                  className={`w-[140px] text-left px-3 sm:px-4 py-2 sm:py-2.5 rounded-lg 
                     transition-all duration-200 touch-manipulation
                     ${item.matched 
                       ? 'bg-green-100 text-gray-600 cursor-not-allowed' 
@@ -300,31 +314,13 @@ export default function MatchGame() {
                     ${item.matched ? 'opacity-60' : ''}
                     active:scale-[0.98] transform`}
                 >
-                  <span className="text-sm sm:text-base">{item.word.meaning}</span>
+                  <span className="text-xs sm:text-sm break-words">{item.word.meaning}</span>
                 </button>
               ))}
             </div>
           </div>
         </div>
 
-        {/* Footer */}
-        <div className="mt-6 sm:mt-8 flex flex-col sm:flex-row justify-between items-center gap-4">
-          <button
-            onClick={handleShowAnswer}
-            className="px-6 sm:px-8 py-2 sm:py-3 bg-gray-200 hover:bg-gray-300 
-                     rounded-lg text-sm sm:text-base text-gray-700 transition-colors
-                     active:scale-95 transform min-w-[100px] touch-manipulation"
-          >
-            {showAnswer 
-              ? (currentGroup < totalGroups - 1 ? '下一组' : '进入复习')
-              : '下一题'
-            }
-          </button>
-          <div className="flex items-center gap-2 text-green-600">
-            <div className="w-3 h-3 bg-green-500 rounded"></div>
-            <span className="text-sm sm:text-base">正确答案</span>
-          </div>
-        </div>
       </div>
     </div>
   )

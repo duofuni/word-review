@@ -63,7 +63,7 @@ export default function WordReview() {
 
   return (
     <div className="min-h-screen bg-white flex items-center justify-center py-8 px-4">
-      <div className="max-w-4xl w-full">
+      <div className="w-full md:max-w-[750px]">
         {/* Page Indicator */}
         <div className="text-right text-sm sm:text-base text-gray-500 mb-6">
           {currentIndex + 1}/{words.length}

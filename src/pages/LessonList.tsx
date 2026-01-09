@@ -37,10 +37,10 @@ export default function LessonList() {
 
   return (
     <div className="min-h-screen bg-white py-6 sm:py-8 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-7xl mx-auto">
+      <div className="w-full md:max-w-[750px] mx-auto">
         <div className="border-b border-dashed border-gray-300 mb-6 sm:mb-8"></div>
         
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4 lg:gap-6">
+        <div className="grid grid-cols-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2 sm:gap-4 lg:gap-6">
           {lessons.map((lesson) => (
             <div
               key={lesson.id}
