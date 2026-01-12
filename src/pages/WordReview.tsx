@@ -11,7 +11,7 @@ export default function WordReview() {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    fetch('/word.json')
+    fetch(`${import.meta.env.BASE_URL}word.json`)
       .then(res => res.json())
       .then((data: Word[]) => {
         const lessons = parseWordsToLessons(data)

@@ -15,7 +15,7 @@ export default function LessonList() {
     // Load progress from localStorage on initial mount
     setProgress(getProgress())
     
-    fetch('/word.json')
+    fetch(`${import.meta.env.BASE_URL}word.json`)
       .then(res => res.json())
       .then((data: Word[]) => {
         const parsedLessons = parseWordsToLessons(data)
