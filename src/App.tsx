@@ -5,7 +5,7 @@ import WordReview from './pages/WordReview'
 
 function App() {
   return (
-    <BrowserRouter>
+    <BrowserRouter basename="/word-review">
       <Routes>
         <Route path="/" element={<LessonList />} />
         <Route path="/lesson/:lessonId/match" element={<MatchGame />} />
