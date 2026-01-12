@@ -1,7 +1,8 @@
 import { useEffect, useState, useRef } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { Word, Lesson } from '../types'
+import { Word } from '../types'
 import { parseWordsToLessons, shuffleArray } from '../utils/wordParser'
+import { updateLessonProgress } from '../utils/storage'
 
 interface MatchItem {
   word: Word;
@@ -90,7 +91,30 @@ export default function MatchGame() {
   }, [connections])
 
   const handleLeftClick = (index: number) => {
-    if (leftItems[index].matched) return
+    // If clicking on a matched left item, cancel the connection
+    if (leftItems[index].matched) {
+      // Find the corresponding right item index
+      const rightIdx = connections.get(index)
+      if (rightIdx !== undefined) {
+        // Cancel the connection
+        setConnections(prev => {
+          const newConnections = new Map(prev)
+          newConnections.delete(index)
+          return newConnections
+        })
+        // Unmatch both items
+        setLeftItems(prev => prev.map((item, i) => 
+          i === index ? { ...item, matched: false } : item
+        ))
+        setRightItems(prev => prev.map((item, i) => 
+          i === rightIdx ? { ...item, matched: false } : item
+        ))
+        // Clear selections
+        setSelectedLeft(null)
+        setSelectedRight(null)
+      }
+      return
+    }
     
     if (selectedLeft === index) {
       setSelectedLeft(null)
@@ -109,8 +133,41 @@ export default function MatchGame() {
   }
 
   const handleRightClick = (index: number) => {
-    if (rightItems[index].matched) return
+    // If clicking on a matched right item, cancel the connection
+    if (rightItems[index].matched) {
+      // Find the corresponding left item index
+      const leftIdx = Array.from(connections.entries()).find(([_, rightIdx]) => rightIdx === index)?.[0]
+      if (leftIdx !== undefined) {
+        // Cancel the connection
+        setConnections(prev => {
+          const newConnections = new Map(prev)
+          newConnections.delete(leftIdx)
+          return newConnections
+        })
+        // Unmatch both items
+        setLeftItems(prev => prev.map((item, i) => 
+          i === leftIdx ? { ...item, matched: false } : item
+        ))
+        setRightItems(prev => prev.map((item, i) => 
+          i === index ? { ...item, matched: false } : item
+        ))
+        // Clear selections
+        setSelectedLeft(null)
+        setSelectedRight(null)
+      }
+      return
+    }
     
+    // If clicking on already selected right item, cancel selection
+    if (selectedRight === index) {
+      setSelectedRight(null)
+      setRightItems(prev => prev.map((item, i) => 
+        i === index ? { ...item, selected: false } : item
+      ))
+      return
+    }
+    
+    // If no left item is selected, don't do anything
     if (selectedLeft === null) return
     
     const leftWord = leftItems[selectedLeft].word
@@ -143,6 +200,15 @@ export default function MatchGame() {
   }
 
   const handleShowAnswer = () => {
+    // Check if all items are already matched
+    const allMatched = leftItems.every(item => item.matched) && leftItems.length > 0
+    
+    // If all matched, go directly to next group
+    if (allMatched) {
+      handleNextGroup()
+      return
+    }
+    
     if (!showAnswer) {
       setShowAnswer(true)
       const correctConnections = new Map<number, number>()
@@ -173,7 +239,10 @@ export default function MatchGame() {
     if (currentGroup < totalGroups - 1) {
       setCurrentGroup(currentGroup + 1)
     } else {
-      // All groups completed, navigate to review
+      // All groups completed, mark lesson as completed and navigate to review
+      if (lessonId) {
+        updateLessonProgress(parseInt(lessonId), true)
+      }
       navigate(`/lesson/${lessonId}/review`)
     }
   }
@@ -199,49 +268,77 @@ export default function MatchGame() {
   const allMatched = leftItems.every(item => item.matched) && leftItems.length > 0
   const totalGroups = Math.ceil(allWords.length / WORDS_PER_GROUP)
 
+  const handleBack = () => {
+    navigate(`/lesson/${lessonId}/review`)
+  }
+
   return (
-    <div className="min-h-screen bg-white py-4 sm:py-8 px-4">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 py-4 sm:py-6 px-4">
       <div className="w-full md:max-w-[750px] mx-auto">
         {/* Header */}
-        <div className="flex justify-between items-center mb-6 sm:mb-8">
-          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
-            <button
-              onClick={handleShowAnswer}
-              className="px-6 sm:px-8 py-2 sm:py-3 bg-gray-200 hover:bg-gray-300 
-                       rounded-lg text-sm sm:text-base text-gray-700 transition-colors
-                       active:scale-95 transform min-w-[100px] touch-manipulation"
-            >
-              {showAnswer 
-                ? (currentGroup < totalGroups - 1 ? '下一组' : '进入复习')
-                : '下一题'
-              }
-            </button>
-            <div className="flex items-center gap-2 text-green-600">
-              <div className="w-3 h-3 bg-green-500 rounded"></div>
-              <span className="text-sm sm:text-base">正确答案</span>
+        <div className="mb-6 sm:mb-8">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-3">
+              <button
+                onClick={handleBack}
+                className="p-2 hover:bg-white/80 rounded-lg transition-colors active:scale-95 transform"
+                aria-label="返回"
+              >
+                <svg className="w-5 h-5 sm:w-6 sm:h-6 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                </svg>
+              </button>
+              <h1 className="text-lg sm:text-xl font-bold text-gray-800">
+                第{lessonId}课 - 单词匹配
+              </h1>
+            </div>
+            <div className="flex items-center gap-2 bg-white/80 px-3 py-1.5 rounded-full shadow-sm">
+              <span className="text-xs sm:text-sm font-medium text-gray-600">进度</span>
+              <span className="text-sm sm:text-base font-bold text-blue-600">
+                {currentGroup + 1}/{totalGroups}
+              </span>
             </div>
           </div>
-          <div className="text-sm sm:text-base text-gray-500">
-            {currentGroup + 1}/{totalGroups}
+          
+          <div className="flex flex-wrap items-center gap-3 sm:gap-4">
+            <button
+              onClick={handleShowAnswer}
+              className="px-5 sm:px-6 py-2.5 sm:py-3 bg-blue-500 hover:bg-blue-600 
+                       rounded-xl text-sm sm:text-base text-white font-medium transition-all
+                       active:scale-95 transform shadow-md hover:shadow-lg touch-manipulation
+                       min-w-[100px]"
+            >
+              {allMatched
+                ? (currentGroup < totalGroups - 1 ? '下一组' : '返回复习')
+                : showAnswer 
+                  ? (currentGroup < totalGroups - 1 ? '下一组' : '返回复习')
+                  : '查看答案'
+              }
+            </button>
+            <div className="flex items-center gap-2 bg-white/80 px-3 py-1.5 rounded-lg shadow-sm">
+              <div className="w-2.5 h-2.5 bg-green-500 rounded-full animate-pulse"></div>
+              <span className="text-xs sm:text-sm text-gray-700">已匹配</span>
+            </div>
           </div>
         </div>
 
         {/* Game Area */}
         <div 
           ref={containerRef}
-          className="relative min-h-[400px] sm:min-h-[500px]"
+          className="relative bg-white/60 backdrop-blur-sm rounded-2xl shadow-xl p-4 sm:p-6 md:p-8
+                     min-h-[450px] sm:min-h-[550px] border border-white/20"
         >
           {/* SVG for connections */}
           <svg
             ref={svgRef}
-            className="absolute inset-0 w-full h-full pointer-events-none z-10"
+            className="absolute inset-0 w-full h-full pointer-events-none z-10 rounded-2xl"
             style={{ overflow: 'visible' }}
           >
             {Array.from(connections.entries()).map(([leftIdx, rightIdx]) => {
               const leftPos = getButtonPosition(leftIdx, true)
               const rightPos = getButtonPosition(rightIdx, false)
               
-              // Use bezier curve for better visual on mobile
+              // Use bezier curve for better visual
               const midX = (leftPos.x + rightPos.x) / 2
               const controlY = Math.abs(rightPos.y - leftPos.y) > 50 
                 ? (leftPos.y + rightPos.y) / 2 
@@ -251,44 +348,52 @@ export default function MatchGame() {
                 <path
                   key={`${leftIdx}-${rightIdx}`}
                   d={`M ${leftPos.x} ${leftPos.y} Q ${midX} ${controlY} ${rightPos.x} ${rightPos.y}`}
-                  stroke={showAnswer ? "#10b981" : "#10b981"}
-                  strokeWidth="2"
+                  stroke={showAnswer ? "#10b981" : "#3b82f6"}
+                  strokeWidth="3"
                   fill="none"
-                  strokeDasharray={showAnswer ? "0" : "5,5"}
+                  strokeDasharray={showAnswer ? "0" : "8,4"}
+                  strokeLinecap="round"
+                  className="drop-shadow-sm"
                 />
               )
             })}
           </svg>
 
           {/* Content */}
-          <div className="flex flex-row justify-between items-start relative z-20 overflow-x-auto px-4 md:px-[150px]">
+          <div className="flex flex-row justify-center items-start relative z-20 gap-8 sm:gap-12 md:gap-16 lg:gap-24">
             {/* Left Column - Words */}
             <div className="flex flex-col items-start space-y-3 sm:space-y-4 flex-shrink-0">
+              <div className="mb-2 px-2">
+                <span className="text-xs sm:text-sm font-semibold text-blue-600 uppercase tracking-wide">单词</span>
+              </div>
               {leftItems.map((item, index) => (
                 <button
                   key={index}
                   data-index={index}
                   data-side="left"
                   onClick={() => handleLeftClick(index)}
-                  disabled={item.matched}
-                  className={`w-[140px] text-left px-3 sm:px-4 py-2 sm:py-2.5 rounded-lg 
-                    transition-all duration-200 touch-manipulation
+                  className={`min-w-[150px] sm:min-w-[160px] text-left px-4 sm:px-5 py-3 sm:py-3.5 rounded-xl 
+                    transition-all duration-200 touch-manipulation shadow-md hover:shadow-lg
                     ${item.matched 
-                      ? 'bg-green-100 text-gray-600 cursor-not-allowed' 
+                      ? 'bg-gradient-to-r from-green-100 to-green-50 hover:from-green-200 hover:to-green-100 text-gray-800 border-2 border-green-300' 
                       : item.selected
-                      ? 'bg-blue-300 text-blue-900'
-                      : 'bg-gray-100 hover:bg-gray-200 active:bg-gray-300 text-gray-800'
+                      ? 'bg-gradient-to-r from-blue-400 to-blue-300 text-white border-2 border-blue-500 shadow-lg scale-105'
+                      : 'bg-white hover:bg-blue-50 text-gray-800 border-2 border-gray-200 hover:border-blue-300'
                     }
-                    ${item.matched ? 'opacity-60' : ''}
-                    active:scale-[0.98] transform`}
+                    active:scale-[0.97] transform`}
                 >
-                  <div className="flex items-start gap-2">
+                  <div className="flex items-center gap-2.5">
                     {item.matched && (
-                      <svg className="w-4 h-4 sm:w-5 sm:h-5 text-green-600 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                      <svg className="w-5 h-5 sm:w-6 sm:h-6 text-green-600 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
                         <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
                       </svg>
                     )}
-                    <span className="text-xs sm:text-sm break-words">{item.word.word}</span>
+                    {item.selected && !item.matched && (
+                      <div className="w-2 h-2 bg-white rounded-full flex-shrink-0"></div>
+                    )}
+                    <span className="text-sm sm:text-base font-medium break-words leading-relaxed">
+                      {item.word.word}
+                    </span>
                   </div>
                 </button>
               ))}
@@ -296,25 +401,38 @@ export default function MatchGame() {
 
             {/* Right Column - Meanings */}
             <div className="flex flex-col items-end space-y-3 sm:space-y-4 flex-shrink-0">
+              <div className="mb-2 px-2">
+                <span className="text-xs sm:text-sm font-semibold text-purple-600 uppercase tracking-wide">释义</span>
+              </div>
               {rightItems.map((item, index) => (
                 <button
                   key={index}
                   data-index={index}
                   data-side="right"
                   onClick={() => handleRightClick(index)}
-                  disabled={item.matched}
-                  className={`w-[140px] text-left px-3 sm:px-4 py-2 sm:py-2.5 rounded-lg 
-                    transition-all duration-200 touch-manipulation
+                  className={`min-w-[150px] sm:min-w-[160px] text-left px-4 sm:px-5 py-3 sm:py-3.5 rounded-xl 
+                    transition-all duration-200 touch-manipulation shadow-md hover:shadow-lg
                     ${item.matched 
-                      ? 'bg-green-100 text-gray-600 cursor-not-allowed' 
+                      ? 'bg-gradient-to-r from-green-100 to-green-50 hover:from-green-200 hover:to-green-100 text-gray-800 border-2 border-green-300' 
                       : item.selected
-                      ? 'bg-blue-300 text-blue-900'
-                      : 'bg-gray-100 hover:bg-gray-200 active:bg-gray-300 text-gray-800'
+                      ? 'bg-gradient-to-r from-purple-400 to-purple-300 text-white border-2 border-purple-500 shadow-lg scale-105'
+                      : 'bg-white hover:bg-purple-50 text-gray-800 border-2 border-gray-200 hover:border-purple-300'
                     }
-                    ${item.matched ? 'opacity-60' : ''}
-                    active:scale-[0.98] transform`}
+                    active:scale-[0.97] transform`}
                 >
-                  <span className="text-xs sm:text-sm break-words">{item.word.meaning}</span>
+                  <div className="flex items-center gap-2.5">
+                    {item.selected && !item.matched && (
+                      <div className="w-2 h-2 bg-white rounded-full flex-shrink-0"></div>
+                    )}
+                    <span className="text-sm sm:text-base font-medium break-words leading-relaxed">
+                      {item.word.meaning}
+                    </span>
+                    {item.matched && (
+                      <svg className="w-5 h-5 sm:w-6 sm:h-6 text-green-600 flex-shrink-0 ml-auto" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                      </svg>
+                    )}
+                  </div>
                 </button>
               ))}
             </div>

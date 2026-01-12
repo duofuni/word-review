@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { Word, Lesson } from '../types'
+import { Word } from '../types'
 import { parseWordsToLessons } from '../utils/wordParser'
 
 export default function WordReview() {
@@ -41,6 +41,10 @@ export default function WordReview() {
 
   const handleBack = () => {
     navigate('/')
+  }
+
+  const handleGoToMatch = () => {
+    navigate(`/lesson/${lessonId}/match`)
   }
 
   if (loading) {
@@ -117,8 +121,16 @@ export default function WordReview() {
           </div>
         </div>
 
-        {/* Back Button */}
-        <div className="mt-6 sm:mt-8 text-center">
+        {/* Action Buttons */}
+        <div className="mt-6 sm:mt-8 flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center items-center">
+          <button
+            onClick={handleGoToMatch}
+            className="px-6 sm:px-8 py-2 sm:py-3 bg-blue-500 hover:bg-blue-600 
+                     rounded-lg text-sm sm:text-base text-white transition-colors
+                     active:scale-95 transform touch-manipulation font-medium"
+          >
+            去测验
+          </button>
           <button
             onClick={handleBack}
             className="px-6 sm:px-8 py-2 sm:py-3 bg-gray-200 hover:bg-gray-300 
